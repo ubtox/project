@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>ULTIMA | Multi-AI Agent (GPT-5.2 / Gemini 3 Pro / Claude 4.5 / DeepSeek R1)</title>
+  <style>
+    :root{
+      --bg:#050505;
+      --panel:#0a0a0a;
+      --accent:#00ffcc;
+      --muted:#9aa0a6;
+      --border:#2b2b2b;
+      --user:#0055ff;
+      --ai:#141414;
+      --text:#e8eaed;
+      --danger:#ff4d4d;
+      --ok:#5cff9a;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      background:var(--bg);
+      color:var(--text);
+      display:flex;
+      height:100vh;
+      overflow:hidden;
+    }
+    #sidebar{
+      width:340px;
+      background:var(--panel);
+      border-right:1px solid var(--border);
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    h1{
+      margin:0 0 6px 0;
+      font-size:18px;
+      color:var(--accent);
+      text-transform:uppercase;
+      letter-spacing:1px;
+      text-shadow:0 0 10px rgba(0,255,204,.35);
+      text-align:center;
+    }
+    .hint{font-size:11px;color:var(--muted);line-height:1.35}
+    label{display:block;font-size:11px;color:var(--muted);margin-bottom:6px}
+    input, select, button, textarea{
+      width:100%;
+      padding:10px;
+      background:#0f0f0f;
+      border:1px solid var(--border);
+      color:var(--text);
+      border-radius:8px;
+      font-family:inherit;
+      outline:none;
+    }
+    input:focus, select:focus, textarea:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,255,204,.08)}
+    button{
+      cursor:pointer;
+      border:1px solid var(--accent);
+      color:var(--accent);
+      background: linear-gradient(45deg, rgba(0,255,204,.06), rgba(0,0,0,.2));
+      font-weight:700;
+      transition:.2s;
+    }
+    button:hover{background:var(--accent); color:#000; box-shadow:0 0 16px rgba(0,255,204,.25)}
+    button:disabled{opacity:.45; cursor:not-allowed}
+    .row{display:flex; gap:10px}
+    .row > *{flex:1}
+    .card{
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px;
+      background:#0b0b0b;
+    }
+    .toggles{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+    .toggle{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:8px;
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:#0f0f0f;
+      font-size:12px;
+      color:var(--text);
+    }
+    .toggle input{width:auto}
+    #chat{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      position:relative;
+    }
+    #messages{
+      flex:1;
+      overflow-y:auto;
+      padding:18px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .msg{
+      max-width:86%;
+      padding:12px 12px;
+      border-radius:12px;
+      line-height:1.45;
+      border:1px solid transparent;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+    .user{
+      align-self:flex-end;
+      background:var(--user);
+      color:#fff;
+      border-bottom-right-radius:4px;
+    }
+    .ai{
+      align-self:flex-start;
+      background:var(--ai);
+      border-color:var(--border);
+      border-bottom-left-radius:4px;
+      color:var(--accent);
+    }
+    .meta{
+      margin-top:8px;
+      padding-top:8px;
+      border-top:1px dashed rgba(255,255,255,.08);
+      color:#b7ffe9;
+      font-size:12px;
+    }
+    .warn{
+      color:var(--danger);
+      font-size:12px;
+      margin-top:6px;
+    }
+    .ok{color:var(--ok)}
+    .img{
+      max-width:100%;
+      border-radius:10px;
+      margin-top:10px;
+      border:1px solid rgba(255,255,255,.15);
+    }
+    #composer{
+      padding:14px;
+      background:var(--panel);
+      border-top:1px solid var(--border);
+      display:flex;
+      gap:10px;
+      align-items:flex-end;
+    }
+    #userInput{
+      flex:1;
+      min-height:42px;
+      max-height:120px;
+      resize:none;
+    }
+    .btnSmall{width:auto; padding:10px 12px; border-radius:10px}
+    .srOnly{
+      position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden;
+    }
+    .kbd{font-size:11px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <aside id="sidebar" aria-label="Configuration ULTIMA">
+    <h1>ULTIMA WEB</h1>
+    <div class="hint">
+      Stack multi-LLM côté navigateur : GPT‑5.2 (OpenAI) + Gemini 3 Pro + Claude 4.5 + DeepSeek R1.
+      <div class="kbd">Tips: <b>Entrée</b> = envoyer, <b>Shift+Entrée</b> = nouvelle ligne, <b>/img</b> = image.</div>
+    </div>
+
+    <div class="card">
+      <label for="provider">CERVEAU ACTIF</label>
+      <select id="provider">
+        <option value="openai">OpenAI — GPT‑5.2</option>
+        <option value="gemini">Google — Gemini 3 Pro</option>
+        <option value="claude">Anthropic — Claude 4.5</option>
+        <option value="deepseek">DeepSeek — R1</option>
+      </select>
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label for="persona">MODE</label>
+          <select id="persona">
+            <option value="Hacker">Hacker / Cyberpunk</option>
+            <option value="Jarvis">Assistant Ultime</option>
+            <option value="Friend">Ami Cool</option>
+          </select>
+        </div>
+        <div>
+          <label for="maxTokens">MAX TOKENS</label>
+          <input id="maxTokens" type="number" min="64" max="8192" value="1024" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="keysCard">
+      <div id="openaiKeys">
+        <label for="openaiKey">API KEY OPENAI</label>
+        <input type="password" id="openaiKey" placeholder="sk-..." autocomplete="off" />
+      </div>
+      <div id="geminiKeys" style="display:none">
+        <label for="geminiKey">API KEY GEMINI</label>
+        <input type="password" id="geminiKey" placeholder="AIza..." autocomplete="off" />
+      </div>
+      <div id="claudeKeys" style="display:none">
+        <label for="claudeKey">API KEY ANTHROPIC</label>
+        <input type="password" id="claudeKey" placeholder="sk-ant-..." autocomplete="off" />
+        <div class="hint" style="margin-top:6px">Modèle par défaut : <b>claude-sonnet-4-5</b></div>
+      </div>
+      <div id="deepseekKeys" style="display:none">
+        <label for="deepseekKey">API KEY DEEPSEEK</label>
+        <input type="password" id="deepseekKey" placeholder="sk-..." autocomplete="off" />
+        <div class="hint" style="margin-top:6px">R1 : <b>deepseek-reasoner</b></div>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <button class="btnSmall" id="btnSave">Sauvegarder</button>
+        <button class="btnSmall" id="btnClear">Purger</button>
+      </div>
+      <div class="hint" id="statusLine" aria-live="polite" style="margin-top:8px"></div>
+      <div class="warn" id="corsWarn" style="display:none"></div>
+    </div>
+
+    <div class="card">
+      <div class="toggles">
+        <div class="toggle">
+          <span>TTS (lecture)</span>
+          <input type="checkbox" id="tts" />
+        </div>
+        <div class="toggle">
+          <span>Streaming</span>
+          <input type="checkbox" id="stream" />
+        </div>
+        <div class="toggle">
+          <span>Afficher reasoning</span>
+          <input type="checkbox" id="showReasoning" />
+        </div>
+        <div class="toggle">
+          <span>JSON mode</span>
+          <input type="checkbox" id="jsonMode" />
+        </div>
+        <div class="toggle">
+          <span>Outils (agent)</span>
+          <input type="checkbox" id="toolsMode" />
+        </div>
+        <div class="toggle">
+          <span>Upload image</span>
+          <input type="checkbox" id="imgMode" />
+        </div>
+      </div>
+      <div class="hint" style="margin-top:10px">
+        Tools/Agent : exécute des “fonctions locales” (time/calc/http_get safe) si le modèle les appelle.
+      </div>
+    </div>
+
+    <div class="hint" style="margin-top:auto;text-align:center">
+      Exécution locale (navigateur) • GitHub Pages friendly
+    </div>
+  </aside>
+
+  <main id="chat" aria-label="Zone de conversation">
+    <div id="messages" role="log" aria-live="polite" aria-relevant="additions"></div>
+
+    <div id="composer" aria-label="Saisie message">
+      <label class="srOnly" for="userInput">Message</label>
+      <textarea id="userInput" placeholder="Message à ULTIMA... (ex: /img un chat cyberpunk)" rows="2"></textarea>
+      <input id="fileInput" type="file" accept="image/*" style="display:none" />
+      <button class="btnSmall" id="btnMic" title="Dicter (si supporté)">🎙</button>
+      <button class="btnSmall" id="btnFile" title="Joindre image" aria-controls="fileInput">🖼</button>
+      <button class="btnSmall" id="btnSend">Envoyer</button>
+    </div>
+  </main>
+
+<script>
+(() => {
+  const els = {
+    provider: document.getElementById('provider'),
+    persona: document.getElementById('persona'),
+    maxTokens: document.getElementById('maxTokens'),
+    openaiKey: document.getElementById('openaiKey'),
+    geminiKey: document.getElementById('geminiKey'),
+    claudeKey: document.getElementById('claudeKey'),
+    deepseekKey: document.getElementById('deepseekKey'),
+    openaiKeys: document.getElementById('openaiKeys'),
+    geminiKeys: document.getElementById('geminiKeys'),
+    claudeKeys: document.getElementById('claudeKeys'),
+    deepseekKeys: document.getElementById('deepseekKeys'),
+    btnSave: document.getElementById('btnSave'),
+    btnClear: document.getElementById('btnClear'),
+    statusLine: document.getElementById('statusLine'),
+    corsWarn: document.getElementById('corsWarn'),
+    messages: document.getElementById('messages'),
+    userInput: document.getElementById('userInput'),
+    btnSend: document.getElementById('btnSend'),
+    btnMic: document.getElementById('btnMic'),
+    btnFile: document.getElementById('btnFile'),
+    fileInput: document.getElementById('fileInput'),
+    tts: document.getElementById('tts'),
+    stream: document.getElementById('stream'),
+    showReasoning: document.getElementById('showReasoning'),
+    jsonMode: document.getElementById('jsonMode'),
+    toolsMode: document.getElementById('toolsMode'),
+    imgMode: document.getElementById('imgMode'),
+  };
+
+  let chat = []; // {role:'user'|'assistant', text, meta?:{reasoning?:string}}
+  let attachedImage = null; // {dataUrl, mime, base64}
+
+  const LS = {
+    provider: 'ultima_provider',
+    persona: 'ultima_persona',
+    maxTokens: 'ultima_maxTokens',
+    openai: 'ultima_openai',
+    gemini: 'ultima_gemini',
+    claude: 'ultima_claude',
+    deepseek: 'ultima_deepseek',
+    tts: 'ultima_tts',
+    stream: 'ultima_stream',
+    showReasoning: 'ultima_showReasoning',
+    jsonMode: 'ultima_jsonMode',
+    toolsMode: 'ultima_toolsMode',
+    imgMode: 'ultima_imgMode',
+    chat: 'ultima_chat',
+  };
+
+  function setStatus(msg, ok=false){
+    els.statusLine.innerHTML = ok ? `<span class="ok">${escapeHtml(msg)}</span>` : escapeHtml(msg);
+  }
+  function setCorsWarn(msg){
+    if(!msg){ els.corsWarn.style.display='none'; els.corsWarn.textContent=''; return; }
+    els.corsWarn.style.display='block';
+    els.corsWarn.textContent = msg;
+  }
+  function escapeHtml(s){
+    return (s ?? '').toString()
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'",'&#039;');
+  }
+  function scrollDown(){
+    els.messages.scrollTop = els.messages.scrollHeight;
+  }
+
+  function renderMsg(role, text, meta){
+    const div = document.createElement('div');
+    div.className = `msg ${role === 'user' ? 'user' : 'ai'}`;
+    div.setAttribute('role', 'article');
+
+    let html = escapeHtml(text).replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+    div.innerHTML = html;
+
+    if(meta && meta.reasoning && els.showReasoning.checked){
+      const m = document.createElement('div');
+      m.className = 'meta';
+      m.innerHTML = `<b>reasoning</b>\n${escapeHtml(meta.reasoning)}`;
+      div.appendChild(m);
+    }
+
+    els.messages.appendChild(div);
+    scrollDown();
+  }
+
+  function renderImg(urlOrDataUrl, alt='Image'){
+    const div = document.createElement('div');
+    div.className = 'msg ai';
+    const img = document.createElement('img');
+    img.className = 'img';
+    img.src = urlOrDataUrl;
+    img.alt = alt;
+    div.appendChild(img);
+    els.messages.appendChild(div);
+    scrollDown();
+  }
+
+  function speak(text){
+    if(!els.tts.checked) return;
+    if(!('speechSynthesis' in window)) return;
+    const clean = (text || '').replace(/[`*_#]/g,'').slice(0, 4000);
+    const u = new SpeechSynthesisUtterance(clean);
+    u.lang = 'fr-FR';
+    u.rate = 1.0;
+    u.pitch = 0.95;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  }
+
+  function systemPrompt(){
+    const persona = els.persona.value;
+    const jsonMode = els.jsonMode.checked;
+    const base =
+`Tu es ULTIMA. Mode: ${persona}.
+Contraintes: réponse utile, concise, orientée solution. Ton style est pro, net, un peu Gen Z, mais sans blabla inutile.`;
+    if(jsonMode){
+      return base + `\nFORMAT: Réponds UNIQUEMENT en JSON valide (pas de markdown).`;
+    }
+    return base;
+  }
+
+  function addToChat(role, text, meta){
+    chat.push({role, text, meta: meta || {}});
+    saveChat();
+  }
+
+  function saveChat(){
+    try{ localStorage.setItem(LS.chat, JSON.stringify(chat)); }catch(_){}
+  }
+  function loadChat(){
+    try{
+      const raw = localStorage.getItem(LS.chat);
+      if(!raw) return;
+      const arr = JSON.parse(raw);
+      if(Array.isArray(arr)){
+        chat = arr.slice(0, 200);
+      }
+    }catch(_){}
+  }
+  function clearChat(){
+    chat = [];
+    try{ localStorage.removeItem(LS.chat); }catch(_){}
+    els.messages.innerHTML = '';
+    renderMsg('assistant', "Système ULTIMA en ligne.\nBranche tes clés, choisis un cerveau, et feu.", {});
+  }
+
+  function loadSettings(){
+    els.provider.value = localStorage.getItem(LS.provider) || 'openai';
+    els.persona.value = localStorage.getItem(LS.persona) || 'Hacker';
+    els.maxTokens.value = localStorage.getItem(LS.maxTokens) || '1024';
+
+    els.openaiKey.value = localStorage.getItem(LS.openai) || '';
+    els.geminiKey.value = localStorage.getItem(LS.gemini) || '';
+    els.claudeKey.value = localStorage.getItem(LS.claude) || '';
+    els.deepseekKey.value = localStorage.getItem(LS.deepseek) || '';
+
+    els.tts.checked = (localStorage.getItem(LS.tts) || '0') === '1';
+    els.stream.checked = (localStorage.getItem(LS.stream) || '0') === '1';
+    els.showReasoning.checked = (localStorage.getItem(LS.showReasoning) || '0') === '1';
+    els.jsonMode.checked = (localStorage.getItem(LS.jsonMode) || '0') === '1';
+    els.toolsMode.checked = (localStorage.getItem(LS.toolsMode) || '0') === '1';
+    els.imgMode.checked = (localStorage.getItem(LS.imgMode) || '0') === '1';
+  }
+
+  function saveSettings(){
+    localStorage.setItem(LS.provider, els.provider.value);
+    localStorage.setItem(LS.persona, els.persona.value);
+    localStorage.setItem(LS.maxTokens, els.maxTokens.value);
+
+    localStorage.setItem(LS.openai, els.openaiKey.value);
+    localStorage.setItem(LS.gemini, els.geminiKey.value);
+    localStorage.setItem(LS.claude, els.claudeKey.value);
+    localStorage.setItem(LS.deepseek, els.deepseekKey.value);
+
+    localStorage.setItem(LS.tts, els.tts.checked ? '1' : '0');
+    localStorage.setItem(LS.stream, els.stream.checked ? '1' : '0');
+    localStorage.setItem(LS.showReasoning, els.showReasoning.checked ? '1' : '0');
+    localStorage.setItem(LS.jsonMode, els.jsonMode.checked ? '1' : '0');
+    localStorage.setItem(LS.toolsMode, els.toolsMode.checked ? '1' : '0');
+    localStorage.setItem(LS.imgMode, els.imgMode.checked ? '1' : '0');
+  }
+
+  function updateProviderUI(){
+    const p = els.provider.value;
+    els.openaiKeys.style.display = p === 'openai' ? 'block' : 'none';
+    els.geminiKeys.style.display = p === 'gemini' ? 'block' : 'none';
+    els.claudeKeys.style.display = p === 'claude' ? 'block' : 'none';
+    els.deepseekKeys.style.display = p === 'deepseek' ? 'block' : 'none';
+
+    setCorsWarn("");
+    if(p === 'openai'){
+      setCorsWarn("Si tu vois un blocage CORS, passe par un petit proxy (Cloudflare Worker / Netlify Function).");
+    }
+    if(p === 'deepseek'){
+      setCorsWarn("DeepSeek peut être bloqué par CORS selon navigateur/réseau. Proxy si besoin.");
+    }
+
+    if(p === 'deepseek' && els.toolsMode.checked && els.stream.checked){
+      els.stream.checked = false;
+      setStatus("Streaming désactivé (DeepSeek + tools = boucle agent non-stream).", true);
+      saveSettings();
+    }
+  }
+
+  function dataUrlToBase64(dataUrl){
+    const m = dataUrl.match(/^data:(.*?);base64,(.*)$/);
+    if(!m) return null;
+    return { mime: m[1], base64: m[2] };
+  }
+
+  els.btnFile.addEventListener('click', () => {
+    if(!els.imgMode.checked){
+      setStatus("Active d’abord ‘Upload image’ si tu veux joindre une image.", false);
+      return;
+    }
+    els.fileInput.click();
+  });
+
+  els.fileInput.addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if(!f) return;
+    if(!f.type.startsWith('image/')){
+      setStatus("Fichier refusé: uniquement image/*", false);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      const b = dataUrlToBase64(dataUrl);
+      attachedImage = { dataUrl, mime: b.mime, base64: b.base64 };
+      setStatus("Image jointe: prête à être envoyée.", true);
+      renderImg(dataUrl, "Image jointe (preview)");
+    };
+    reader.readAsDataURL(f);
+  });
+
+  // Mic (SpeechRecognition)
+  let rec = null;
+  let recOn = false;
+
+  function initRec(){
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR) return null;
+    const r = new SR();
+    r.lang = 'fr-FR';
+    r.interimResults = true;
+    r.continuous = false;
+    return r;
+  }
+
+  els.btnMic.addEventListener('click', () => {
+    if(!rec) rec = initRec();
+    if(!rec){
+      setStatus("Dictée indisponible sur ce navigateur.", false);
+      return;
+    }
+    if(recOn){
+      rec.stop();
+      return;
+    }
+    let finalText = '';
+    recOn = true;
+    els.btnMic.textContent = "⏹";
+    setStatus("Dictée ON… parle, je tape.", true);
+
+    rec.onresult = (ev) => {
+      let interim = '';
+      for(let i=ev.resultIndex; i<ev.results.length; i++){
+        const t = ev.results[i][0].transcript;
+        if(ev.results[i].isFinal) finalText += t;
+        else interim += t;
+      }
+      els.userInput.value = (els.userInput.value + ' ' + interim).trim();
+    };
+    rec.onerror = (e) => { setStatus("Erreur dictée: " + e.error, false); };
+    rec.onend = () => {
+      recOn = false;
+      els.btnMic.textContent = "🎙";
+      if(finalText){
+        els.userInput.value = (els.userInput.value + ' ' + finalText).trim();
+      }
+      setStatus("Dictée OFF.", true);
+      els.userInput.focus();
+    };
+    rec.start();
+  });
+
+  // Tools (local)
+  const localTools = [
+    {
+      name: "get_time",
+      description: "Retourne l'heure locale (Europe/Paris) au format ISO.",
+      parameters: { type:"object", properties:{}, additionalProperties:false }
+    },
+    {
+      name: "calc",
+      description: "Évalue une expression arithmétique simple (ex: '12*(3+4)').",
+      parameters: {
+        type:"object",
+        properties:{ expression:{type:"string"} },
+        required:["expression"],
+        additionalProperties:false
+      }
+    },
+    {
+      name: "http_get",
+      description: "GET HTTP(s) sur une URL publique (bloque localhost/lan). Renvoie texte (max 50k).",
+      parameters: {
+        type:"object",
+        properties:{ url:{type:"string"} },
+        required:["url"],
+        additionalProperties:false
+      }
+    }
+  ];
+
+  function isPrivateHost(u){
+    try{
+      const url = new URL(u);
+      const host = url.hostname.toLowerCase();
+      if(host === 'localhost' || host.endsWith('.local')) return true;
+      if(/^\d+\.\d+\.\d+\.\d+$/.test(host)){
+        const parts = host.split('.').map(x => parseInt(x,10));
+        const [a,b] = parts;
+        if(a === 10) return true;
+        if(a === 127) return true;
+        if(a === 192 && b === 168) return true;
+        if(a === 172 && b >= 16 && b <= 31) return true;
+      }
+      return false;
+    }catch(_){ return true; }
+  }
+
+  async function runTool(name, args){
+    if(name === 'get_time'){
+      return { iso: new Date().toISOString(), tz: "Europe/Paris" };
+    }
+    if(name === 'calc'){
+      const exp = (args.expression || '').trim();
+      if(!exp) throw new Error("expression vide");
+      if(!/^[0-9+\-*/().\s]+$/.test(exp)) throw new Error("expression invalide");
+      const v = Function('"use strict";return (' + exp + ')')();
+      if(typeof v !== 'number' || !isFinite(v)) throw new Error("résultat invalide");
+      return { result: v };
+    }
+    if(name === 'http_get'){
+      const url = (args.url || '').trim();
+      if(!url.startsWith('https://') && !url.startsWith('http://')) throw new Error("URL invalide");
+      if(isPrivateHost(url)) throw new Error("URL privée bloquée");
+      const r = await fetch(url, { method:'GET' });
+      const t = await r.text();
+      return { status: r.status, text: t.slice(0, 50000) };
+    }
+    throw new Error("tool inconnu: " + name);
+  }
+
+  function buildHistoryPlain(){
+    const tail = chat.slice(-40);
+    return tail.map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.text }));
+  }
+
+  async function maybeHandleImgCommand(text){
+    const t = text.trim();
+    const lower = t.toLowerCase();
+    if(t.startsWith('/img') || lower.startsWith('dessine') || lower.includes('dessine ')){
+      const prompt = t.replace(/^\/img\s*/,'').replace(/^dessine\s*/i,'').trim();
+      if(!prompt) return true;
+      const seed = Math.floor(Math.random() * 100000);
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?seed=${seed}&nologo=true`;
+      renderImg(url, "Generated image");
+      speak("Image générée.");
+      return true;
+    }
+    return false;
+  }
+
+  // DeepSeek
+  function deepseekToolsPayload(){
+    return localTools.map(t => ({
+      type: "function",
+      function: {
+        name: t.name,
+        description: t.description,
+        parameters: t.parameters,
+        strict: true
+      }
+    }));
+  }
+
+  async function callDeepSeek(userText){
+    const key = els.deepseekKey.value.trim();
+    if(!key) throw new Error("Clé DeepSeek manquante");
+
+    const maxTokens = parseInt(els.maxTokens.value || '1024', 10);
+    const useTools = els.toolsMode.checked;
+    const model = useTools ? "deepseek-chat" : "deepseek-reasoner";
+
+    const baseMessages = [
+      { role: "system", content: systemPrompt() },
+      ...buildHistoryPlain(),
+      { role: "user", content: userText }
+    ];
+
+    const payloadBase = { model, max_tokens: maxTokens };
+
+    if(els.jsonMode.checked){
+      payloadBase.response_format = { type: "json_object" };
+    }
+    if(useTools){
+      payloadBase.thinking = { type: "enabled" };
+      payloadBase.tools = deepseekToolsPayload();
+      payloadBase.tool_choice = "auto";
+    }
+
+    const doStream = els.stream.checked && !useTools;
+    if(doStream){
+      const payload = { ...payloadBase, messages: baseMessages, stream: true };
+      return await deepseekStream(payload, key);
+    }
+
+    let messages = baseMessages;
+
+    for(let step=0; step<8; step++){
+      const payload = { ...payloadBase, messages, stream: false };
+      const r = await fetch("https://api.deepseek.com/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type":"application/json", "Authorization": `Bearer ${key}` },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await r.json().catch(() => ({}));
+      if(!r.ok) throw new Error(data?.error?.message || ("HTTP " + r.status));
+
+      const msg = data.choices?.[0]?.message;
+      if(!msg) throw new Error("Réponse DeepSeek invalide");
+
+      const reasoning = msg.reasoning_content || "";
+      const content = msg.content || "";
+      const toolCalls = msg.tool_calls || null;
+
+      if(toolCalls && toolCalls.length){
+        // IMPORTANT: preserve reasoning_content in msg in the next call context
+        messages = [...messages, msg];
+
+        for(const tc of toolCalls){
+          const fn = tc.function?.name;
+          const argsStr = tc.function?.arguments || "{}";
+          let args = {};
+          try{ args = JSON.parse(argsStr); }catch(_){ args = { _raw: argsStr }; }
+
+          let out;
+          try{ out = await runTool(fn, args); }
+          catch(e){ out = { error: e.message || String(e) }; }
+
+          messages = [...messages, { role: "tool", tool_call_id: tc.id, content: JSON.stringify(out) }];
+        }
+        continue;
+      }
+
+      return { text: content, reasoning };
+    }
+
+    throw new Error("Boucle tools DeepSeek trop longue (stop).");
+  }
+
+  async function deepseekStream(payload, key){
+    const r = await fetch("https://api.deepseek.com/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type":"application/json", "Authorization": `Bearer ${key}` },
+      body: JSON.stringify(payload)
+    });
+
+    if(!r.ok){
+      const data = await r.json().catch(() => ({}));
+      throw new Error(data?.error?.message || ("HTTP " + r.status));
+    }
+
+    const reader = r.body.getReader();
+    const dec = new TextDecoder('utf-8');
+    let buf = '';
+    let text = '';
+    let reasoning = '';
+
+    const live = document.createElement('div');
+    live.className = 'msg ai';
+    live.textContent = '...';
+    els.messages.appendChild(live);
+    scrollDown();
+
+    while(true){
+      const {value, done} = await reader.read();
+      if(done) break;
+      buf += dec.decode(value, {stream:true});
+      const lines = buf.split('\n');
+      buf = lines.pop() || '';
+      for(const line of lines){
+        const l = line.trim();
+        if(!l.startsWith('data:')) continue;
+        const json = l.slice(5).trim();
+        if(json === '[DONE]') continue;
+        let evt;
+        try{ evt = JSON.parse(json); }catch(_){ continue; }
+        const delta = evt.choices?.[0]?.delta;
+        if(delta?.reasoning_content) reasoning += delta.reasoning_content;
+        if(delta?.content) text += delta.content;
+
+        live.textContent = text || '...';
+        scrollDown();
+      }
+    }
+
+    live.textContent = text || '(vide)';
+    if(reasoning && els.showReasoning.checked){
+      const m = document.createElement('div');
+      m.className = 'meta';
+      m.innerHTML = `<b>reasoning</b>\n${escapeHtml(reasoning)}`;
+      live.appendChild(m);
+    }
+    scrollDown();
+    return { text, reasoning, streamed:true };
+  }
+
+  // Claude
+  async function callClaude(userText){
+    const key = els.claudeKey.value.trim();
+    if(!key) throw new Error("Clé Anthropic manquante");
+    const maxTokens = parseInt(els.maxTokens.value || '1024', 10);
+
+    const useTools = els.toolsMode.checked;
+    if(els.stream.checked){
+      els.stream.checked = false;
+      saveSettings();
+      setStatus("Streaming Claude désactivé (mode stable).", true);
+    }
+
+    const claudeMessages = [];
+    for(const m of chat.slice(-40)){
+      claudeMessages.push({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: [{type:'text', text:m.text}]
+      });
+    }
+
+    if(attachedImage && els.imgMode.checked){
+      claudeMessages.push({
+        role:'user',
+        content: [
+          { type:'image', source:{ type:'base64', media_type: attachedImage.mime, data: attachedImage.base64 } },
+          { type:'text', text: userText }
+        ]
+      });
+    }else{
+      claudeMessages.push({ role:'user', content: [{type:'text', text:userText}] });
+    }
+
+    const tools = useTools ? localTools.map(t => ({
+      name: t.name,
+      description: t.description,
+      input_schema: t.parameters
+    })) : undefined;
+
+    const basePayload = {
+      model: "claude-sonnet-4-5",
+      max_tokens: maxTokens,
+      system: systemPrompt(),
+      messages: claudeMessages
+    };
+    if(tools) basePayload.tools = tools;
+
+    let workingMessages = basePayload.messages;
+
+    for(let step=0; step<8; step++){
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "content-type":"application/json",
+          "x-api-key": key,
+          "anthropic-version":"2023-06-01"
+        },
+        body: JSON.stringify({ ...basePayload, messages: workingMessages })
+      });
+
+      const data = await resp.json().catch(() => ({}));
+      if(!resp.ok) throw new Error(data?.error?.message || ("HTTP " + resp.status));
+
+      const blocks = data.content || [];
+      const toolUses = blocks.filter(b => b.type === 'tool_use');
+      const textBlocks = blocks.filter(b => b.type === 'text');
+      const text = textBlocks.map(b => b.text).join('\n').trim();
+
+      if(toolUses.length){
+        workingMessages = [...workingMessages, { role:'assistant', content: blocks }];
+
+        const toolResults = [];
+        for(const tu of toolUses){
+          let out;
+          try{ out = await runTool(tu.name, tu.input || {}); }
+          catch(e){ out = { error: e.message || String(e) }; }
+          toolResults.push({ type:'tool_result', tool_use_id: tu.id, content: JSON.stringify(out) });
+        }
+        workingMessages = [...workingMessages, { role:'user', content: toolResults }];
+        continue;
+      }
+
+      return { text: text || '(vide)', reasoning: "" };
+    }
+
+    throw new Error("Boucle tools Claude trop longue (stop).");
+  }
+
+  // Gemini
+  async function callGemini(userText){
+    const key = els.geminiKey.value.trim();
+    if(!key) throw new Error("Clé Gemini manquante");
+    const maxTokens = parseInt(els.maxTokens.value || '1024', 10);
+
+    const parts = [];
+    if(attachedImage && els.imgMode.checked){
+      parts.push({ inlineData: { mimeType: attachedImage.mime, data: attachedImage.base64 } });
+    }
+    parts.push({ text: systemPrompt() + "\n\nUser: " + userText });
+
+    const body = {
+      contents: [{ parts }],
+      generationConfig: { maxOutputTokens: maxTokens }
+    };
+
+    const resp = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent", {
+      method: "POST",
+      headers: { "Content-Type":"application/json", "x-goog-api-key": key },
+      body: JSON.stringify(body)
+    });
+
+    const data = await resp.json().catch(() => ({}));
+    if(!resp.ok) throw new Error(data?.error?.message || ("HTTP " + resp.status));
+    const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('\n') || "";
+    return { text: text.trim() || '(vide)', reasoning:"" };
+  }
+
+  // OpenAI
+  async function callOpenAI(userText){
+    const key = els.openaiKey.value.trim();
+    if(!key) throw new Error("Clé OpenAI manquante");
+    const maxTokens = parseInt(els.maxTokens.value || '1024', 10);
+
+    if(els.stream.checked){
+      els.stream.checked = false;
+      saveSettings();
+      setStatus("Streaming OpenAI désactivé (mode stable).", true);
+    }
+
+    const input = [];
+    input.push({ role:'developer', content: systemPrompt() });
+    for(const m of chat.slice(-40)){
+      input.push({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.text });
+    }
+    input.push({ role:'user', content: userText });
+
+    const payload = {
+      model: "gpt-5.2",
+      input,
+      max_output_tokens: maxTokens
+    };
+
+    const resp = await fetch("https://api.openai.com/v1/responses", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "Authorization": `Bearer ${key}` },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await resp.json().catch(() => ({}));
+    if(!resp.ok) throw new Error(data?.error?.message || ("HTTP " + resp.status));
+
+    if(data.output_text) return { text: String(data.output_text).trim(), reasoning:"" };
+
+    let text = "";
+    const out = data.output || [];
+    for(const item of out){
+      const c = item.content || [];
+      for(const part of c){
+        if(part.type === 'output_text' && part.text) text += part.text;
+        if(part.type === 'text' && part.text) text += part.text;
+      }
+    }
+    return { text: (text || '(vide)').trim(), reasoning:"" };
+  }
+
+  async function callProvider(userText){
+    const p = els.provider.value;
+    if(p === 'deepseek') return await callDeepSeek(userText);
+    if(p === 'claude') return await callClaude(userText);
+    if(p === 'gemini') return await callGemini(userText);
+    return await callOpenAI(userText);
+  }
+
+  let busy = false;
+
+  async function send(){
+    if(busy) return;
+    const text = els.userInput.value.trim();
+    if(!text) return;
+
+    renderMsg('user', text, {});
+    addToChat('user', text, {});
+
+    els.userInput.value = '';
+    els.userInput.focus();
+
+    if(await maybeHandleImgCommand(text)){
+      attachedImage = null;
+      els.fileInput.value = '';
+      return;
+    }
+
+    const loading = document.createElement('div');
+    loading.className = 'msg ai';
+    loading.textContent = 'Calcul en cours…';
+    els.messages.appendChild(loading);
+    scrollDown();
+
+    busy = true;
+    els.btnSend.disabled = true;
+
+    try{
+      const res = await callProvider(text);
+
+      if(res && res.streamed){
+        loading.remove();
+        addToChat('assistant', res.text || '', { reasoning: res.reasoning || "" });
+        speak(res.text || "");
+      }else{
+        loading.remove();
+        renderMsg('assistant', res.text || '(vide)', { reasoning: res.reasoning || "" });
+        addToChat('assistant', res.text || '', { reasoning: res.reasoning || "" });
+        speak(res.text || "");
+      }
+
+      attachedImage = null;
+      els.fileInput.value = '';
+      setStatus("OK.", true);
+
+    }catch(e){
+      loading.remove();
+      const msg = "ERREUR SYSTÈME : " + (e.message || String(e));
+      renderMsg('assistant', msg, {});
+      addToChat('assistant', msg, {});
+      setStatus(msg, false);
+    }finally{
+      busy = false;
+      els.btnSend.disabled = false;
+      updateProviderUI();
+    }
+  }
+
+  els.btnSend.addEventListener('click', send);
+  els.userInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      send();
+    }
+  });
+
+  els.btnSave.addEventListener('click', () => {
+    saveSettings();
+    setStatus("Clés + réglages sauvegardés (localStorage).", true);
+  });
+
+  els.btnClear.addEventListener('click', () => {
+    clearChat();
+    setStatus("Chat purgé.", true);
+  });
+
+  els.provider.addEventListener('change', () => { saveSettings(); updateProviderUI(); });
+  els.persona.addEventListener('change', () => { saveSettings(); });
+  els.maxTokens.addEventListener('change', () => { saveSettings(); });
+  els.tts.addEventListener('change', () => { saveSettings(); });
+  els.stream.addEventListener('change', () => { saveSettings(); updateProviderUI(); });
+  els.showReasoning.addEventListener('change', () => { saveSettings(); });
+  els.jsonMode.addEventListener('change', () => { saveSettings(); });
+  els.toolsMode.addEventListener('change', () => { saveSettings(); updateProviderUI(); });
+  els.imgMode.addEventListener('change', () => { saveSettings(); });
+
+  function boot(){
+    loadSettings();
+    updateProviderUI();
+    loadChat();
+
+    els.messages.innerHTML = '';
+    if(chat.length){
+      for(const m of chat){
+        renderMsg(m.role === 'assistant' ? 'assistant' : 'user', m.text, m.meta || {});
+      }
+      setStatus("Session restaurée.", true);
+    }else{
+      renderMsg('assistant', "Système ULTIMA en ligne.\nBranche tes clés, choisis un cerveau, et feu.", {});
+      setStatus("Prêt.", true);
+    }
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
